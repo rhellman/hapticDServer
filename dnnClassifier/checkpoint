@@ -1,2 +1,6 @@
-model_checkpoint_path: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/directionNet/model_directionDNN.ckpt"
-all_model_checkpoint_paths: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/directionNet/model_directionDNN.ckpt"
+model_checkpoint_path: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/dnnClassifier/model_regionDNN.ckpt"
+all_model_checkpoint_paths: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/dnnClassifier/model_regionDNN.ckpt-13500"
+all_model_checkpoint_paths: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/dnnClassifier/model_regionDNN.ckpt-14000"
+all_model_checkpoint_paths: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/dnnClassifier/model_regionDNN.ckpt-14500"
+all_model_checkpoint_paths: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/dnnClassifier/model_regionDNN.ckpt-15000"
+all_model_checkpoint_paths: "/Users/randyhellman/Google Drive/ASUResearch/hapticDecisionMaking/dataRecordandAnalysis/pyHapticTools/dnnClassifier/model_regionDNN.ckpt"

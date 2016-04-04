@@ -1,5 +1,3 @@
-# Test deepNets on matlab formated haptic data
-
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
@@ -8,12 +6,12 @@ from six.moves import cPickle as pickle
 import scipy.io as sio
 import sys, os, os.path, inspect
 
-# Need to ensure that the training data will be used from deepNetTest.py 
-# package location
+# Need to ensure that the training data will be used from directionDNN.py 
+# package location. Saved classifier is stored in same location.
 filedir = inspect.getframeinfo(inspect.currentframe())[0]
 filedir = os.path.dirname(os.path.abspath(filedir))
 
-
+# Loads .mat file in to np.arrays
 mat_contents = sio.loadmat( filedir + '/sampleData_w4RegionLabels.mat')
 train_dataset  = np.array(mat_contents['train_data']).astype(np.float32)
 train_labels = np.array(mat_contents['train_label']).astype(np.float32)
@@ -29,12 +27,12 @@ def accuracy(predictions, labels):
   return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
           / predictions.shape[0])
 
-
-batch_size = 256
-hidden_size = 1024
+batch_size = 128
+hidden_size = 512
 hidden_1_size = hidden_size
 hidden_2_size = hidden_size
 hidden_3_size = hidden_size
+hidden_4_size = hidden_size
 beta = .01
 SEED = None
 dropoutPercent = 0.5
@@ -56,12 +54,16 @@ with graph.as_default():
   biases_2  = tf.Variable(tf.zeros([hidden_2_size]), name="biases_2")
   weights_3 = tf.Variable(tf.truncated_normal([hidden_2_size, hidden_3_size]), name="weights_3")
   biases_3  = tf.Variable(tf.zeros([hidden_3_size]), name="biases_3")
+  weights_4 = tf.Variable(tf.truncated_normal([hidden_3_size, hidden_4_size]), name="weights_4")
+  biases_4  = tf.Variable(tf.zeros([hidden_4_size]), name="biases_4")
   # Output
-  weights_o = tf.Variable(tf.truncated_normal([hidden_3_size, num_labels], stddev=0.1), name="weights_o")
+  weights_o = tf.Variable(tf.truncated_normal([hidden_4_size, num_labels], stddev=0.1), name="weights_o")
   biases_o  = tf.Variable(tf.zeros([num_labels]), name="biases_o")
 
   def model(data, train=False):
     hidden = tf.nn.relu(tf.matmul(data, weights_1) + biases_1)
+    # While training we use dropout to reduce overfitting. Dropout removes
+    # a specified precentange of outputs to reduce individual weight dependencies.
     if train:
       hidden = tf.nn.dropout(hidden, dropoutPercent, seed= SEED)
     hidden = tf.nn.relu(tf.matmul(hidden, weights_2) + biases_2)
@@ -70,12 +72,16 @@ with graph.as_default():
     hidden = tf.nn.relu(tf.matmul(hidden, weights_3) + biases_3)
     if train:
       hidden = tf.nn.dropout(hidden, dropoutPercent, seed= SEED)
+    hidden = tf.nn.relu(tf.matmul(hidden, weights_4) + biases_4)
+    if train:
+      hidden = tf.nn.dropout(hidden, dropoutPercent, seed= SEED)
     return tf.matmul(hidden, weights_o) + biases_o
 
   logits = model(tf_train_dataset, True)
   loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+  # Regularization is used to penalize large weights to help prevent over fitting
   regularized_loss = loss + beta*( tf.nn.l2_loss(weights_1) + tf.nn.l2_loss(weights_2)
-       + tf.nn.l2_loss(weights_3) + tf.nn.l2_loss(weights_o))
+       + tf.nn.l2_loss(weights_3) + tf.nn.l2_loss(weights_4) + tf.nn.l2_loss(weights_o))
 
   # Optimizer.
   global_step = tf.Variable(0)  # count the number of steps taken.
@@ -86,22 +92,19 @@ with graph.as_default():
   train_prediction = tf.nn.softmax(model(tf_train_dataset))
   valid_prediction = tf.nn.softmax(model(tf_valid_dataset))
   data_prediction  = tf.nn.softmax(model(tf_predict_label))
-  
   init_op = tf.initialize_all_variables()
-  saverR = tf.train.Saver()
+  saver = tf.train.Saver()
   # ----------------------------------------------------------------------------------
 
-session1 = tf.Session(graph=graph)
+session = tf.Session(graph=graph)
 
-def train(save = True, filename = 'model_regionDNN.ckpt'):
-  num_steps = 15001
-  with session1.as_default():
-    session1.run(init_op)
-    
+def train(num_steps = 501, save = True, filename = 'model_regionDNN.ckpt'):
+  with session.as_default():
+    session.run(init_op) 
     print("Initialized")
+    
     for step in range(num_steps):
-      # Pick an offset within the training data, which has been randomized.
-      # Note: we could use better randomization across epochs.
+      # Offset is used for stochastic gradient descentd
       offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
       # Generate a minibatch.
       batch_data = train_dataset[offset:(offset + batch_size), :]
@@ -110,31 +113,30 @@ def train(save = True, filename = 'model_regionDNN.ckpt'):
       # The key of the dictionary is the placeholder node of the graph to be fed,
       # and the value is the numpy array to feed to it.
       feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-      _, l, predictions = session1.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
+      _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
       if (step % 500 == 0):
         print("Minibatch loss at step %d: %f  Learning_rate: %f" % (step, l, learning_rate.eval()))
         print("Minibatch accuracy: %.1f%%"    % accuracy(predictions, batch_labels))
         print("Validation accuracy: %.1f%%"   % accuracy(valid_prediction.eval(), valid_labels))
-    #print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))  
+        save_path = saver.save(session, filedir + '/' + filename, global_step=step)
     if save:
-      save_path = saverR.save(session1, os.getcwd() + '/' + filename)
+      save_path = saver.save(session, filedir + '/' + filename)
 
 def init():
-  with session1.as_default():
-    #saverR = tf.train.Saver()
-    tf.train.Saver().restore(session1, filedir + "/model_regionDNN.ckpt") 
+  with session.as_default():
+    saver.restore(session, filedir + "/model_regionDNN.ckpt") 
 
 def predict():
-  with session1.as_default():
+  with session.as_default():
     input_data = np.array(range(24))
     input_data = np.reshape(input_data, (1,-1))
-    #print("input_data.shape:", input_data.shape)
+    
     feed_dict = {tf_predict_label : input_data}
-    predictions = session1.run([data_prediction], feed_dict=feed_dict)
+    predictions = session.run([data_prediction], feed_dict=feed_dict)
     return map(int,predictions[0][0])
 
 def close():
-  session1.close()
+  session.close()
 
 if __name__ == "__main__":
   train(save=True)

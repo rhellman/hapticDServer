@@ -18,10 +18,19 @@ import sys
 import json
 
 from pyHapticTools.dotReward import rewardAssignment
-from pyHapticTools.deepNets import directionDNN as dn, regionDNN as rn
 
-dn.init()
-rn.init()
+from pyHapticTools.dnnClassifier import directionDNN as dn
+from pyHapticTools.dnnClassifier import regionDNN as rn
+
+print('directionDNN')
+dn.train(num_steps = 15001)
+print('regionDNN')
+rn.train(num_steps = 15001)
+os.system('say "your program has finished"')
+
+#dn.init()
+#rn.init()
+
 
 def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
@@ -51,9 +60,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                      'CONTENT_TYPE':self.headers['Content-Type'],
                      })
         logging.warning("======= POST VALUES =======")
-        #for item in form.list:
-            #logging.warning(item)
-        #logging.warning("\n")
+
         if form.has_key("classifier"):
             test = form.getvalue("classifier")
             text = test.split(',')
@@ -70,7 +77,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         fileitem = form["image"]
         if not fileitem.file: return 
 
-        # save file to current folter
+        # save base jpg file to current folter 
         outpath = os.path.join(os.getcwd() + '/jpg', fileitem.filename)
         print 'outpath ', outpath
         with open(outpath, 'wb') as fout:
@@ -79,7 +86,6 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             print 'Saved: fileitem.filename'
 
         findOffsetForRewardAssignment(outpath)
-
         SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
 signal.signal(signal.SIGINT, signal_handler)
