@@ -1,1 +1,1 @@
-__all__ = ["deepNets","dotReward"]
+__all__ = ["dnnClassifier","dotReward"]

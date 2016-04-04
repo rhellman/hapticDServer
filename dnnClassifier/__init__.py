@@ -1,1 +1,1 @@
-__all__ = ["deepNetTest"]
+__all__ = [ "regionDNN", "directionDNN"]
