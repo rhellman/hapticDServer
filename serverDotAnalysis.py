@@ -7,6 +7,7 @@ body
 '''
 
 # Webserver imports
+from __future__ import print_function
 import SimpleHTTPServer
 import SocketServer
 import logging
@@ -16,20 +17,20 @@ import shutil
 import signal
 import sys
 import json
+import numpy as np
 
 from pyHapticTools.dotReward import rewardAssignment
 
 from pyHapticTools.dnnClassifier import directionDNN as dn
 from pyHapticTools.dnnClassifier import regionDNN as rn
 
-print('directionDNN')
-dn.train(num_steps = 15001)
-print('regionDNN')
-rn.train(num_steps = 15001)
-os.system('say "your program has finished"')
+# Training block
+# dn.train(num_steps = 15001)
+# rn.train(num_steps = 15001)
+# os.system('say "your program has finished"')
 
-#dn.init()
-#rn.init()
+dn.init()
+rn.init()
 
 
 def signal_handler(signal, frame):
@@ -64,14 +65,16 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if form.has_key("classifier"):
             test = form.getvalue("classifier")
             text = test.split(',')
-            inputString = map(float, text) #list of electrode vals
-            print "inputString: ", inputString
+            inputRow = np.array(map(float, text)).astype(np.float32) #list of electrode vals
+            inputRow = np.reshape(inputRow, (1,-1))
+            print('inputRow: \n\t{} \n\tinputRow.shape: {}'.format(inputRow, inputRow.shape))
             self._writeheaders()
             listOutput = np.array([1.0, 2.0, 3.4])
-            #rn.predict(inputString)
-            #dn.predict(inputString)
-            #listOutput needs to be updated to include rn/dn.predict()
-            self.wfile.write(json.dumps({'classifier': listOutput.tolist(), 'region': 1}))
+            #Prediction
+            regionPrediction    = rn.predict(inputRow)
+            directionPrediction = dn.predict(inputRow)
+
+            self.wfile.write(json.dumps({'direction': directionPrediction, 'region': regionPrediction}))
 
         if not form.has_key("image"): return
         fileitem = form["image"]
@@ -79,11 +82,11 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         # save base jpg file to current folter 
         outpath = os.path.join(os.getcwd() + '/jpg', fileitem.filename)
-        print 'outpath ', outpath
+        print('outpath ', outpath)
         with open(outpath, 'wb') as fout:
-            print 'fout - ', fout
+            print('fout - ', fout)
             shutil.copyfileobj(fileitem.file, fout, 100000)
-            print 'Saved: fileitem.filename'
+            print('Saved: fileitem.filename')
 
         findOffsetForRewardAssignment(outpath)
         SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
@@ -98,7 +101,7 @@ Handler = ServerHandler
 SocketServer.TCPServer.allow_reuse_address = True
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 
-print "Serving at: http://%(interface)s:%(port)s" % dict(interface=I or "localhost", port=PORT)
+print("Serving at: http://{interface}:{port}".format(interface=I if 'interface' in locals() else "localhost", port=PORT))
 httpd.serve_forever()
 
 

@@ -120,14 +120,13 @@ def init():
   with session.as_default():
     saver.restore(session, filedir + "/model_directionDNN.ckpt") 
 
-def predict():
-  with session.as_default():
-    input_data = np.array(range(24))
-    input_data = np.reshape(input_data, (1,-1))
-    
+def predict(input_data):
+  with session.as_default():    
     feed_dict = {tf_predict_label : input_data}
-    predictions = session.run([data_prediction], feed_dict=feed_dict)
-    return map(int,predictions[0][0])
+    predictionArray = session.run([data_prediction], feed_dict=feed_dict)
+    prediction =  np.argmax(predictionArray)
+    print('Direction-predictions: {}, np.argmax: {}'.format(predictionArray, prediction))
+    return prediction
 
 def close():
   session.close()

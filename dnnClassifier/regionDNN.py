@@ -72,9 +72,6 @@ with graph.as_default():
     hidden = tf.nn.relu(tf.matmul(hidden, weights_3) + biases_3)
     if train:
       hidden = tf.nn.dropout(hidden, dropoutPercent, seed= SEED)
-    hidden = tf.nn.relu(tf.matmul(hidden, weights_4) + biases_4)
-    if train:
-      hidden = tf.nn.dropout(hidden, dropoutPercent, seed= SEED)
     return tf.matmul(hidden, weights_o) + biases_o
 
   logits = model(tf_train_dataset, True)
@@ -85,7 +82,7 @@ with graph.as_default():
 
   # Optimizer.
   global_step = tf.Variable(0)  # count the number of steps taken.
-  learning_rate = tf.train.exponential_decay(0.001, global_step, 250, 0.96)
+  learning_rate = tf.train.exponential_decay(0.002, global_step, 250, 0.96)
   optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(regularized_loss, global_step=global_step)
 
   # Predictions for the training, validation, and test data.
@@ -98,11 +95,11 @@ with graph.as_default():
 
 session = tf.Session(graph=graph)
 
-def train(num_steps = 501, save = True, filename = 'model_regionDNN.ckpt'):
+def train(num_steps = 15001, save = True, filename = 'model_regionDNN.ckpt'):
   with session.as_default():
-    session.run(init_op) 
-    print("Initialized")
+    session.run(init_op)
     
+    print("Initialized")
     for step in range(num_steps):
       # Offset is used for stochastic gradient descentd
       offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
@@ -126,14 +123,13 @@ def init():
   with session.as_default():
     saver.restore(session, filedir + "/model_regionDNN.ckpt") 
 
-def predict():
-  with session.as_default():
-    input_data = np.array(range(24))
-    input_data = np.reshape(input_data, (1,-1))
-    
+def predict(input_data):
+  with session.as_default():    
     feed_dict = {tf_predict_label : input_data}
-    predictions = session.run([data_prediction], feed_dict=feed_dict)
-    return map(int,predictions[0][0])
+    predictionArray = session.run([data_prediction], feed_dict=feed_dict)
+    prediction =  np.argmax(predictionArray)
+    print('Region-Prediction: {}, np.argmax: {}'.format(predictionArray, prediction))
+    return prediction
 
 def close():
   session.close()
