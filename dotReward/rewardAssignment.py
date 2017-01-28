@@ -1,8 +1,8 @@
 #!/usr/local/bin/python
 '''
-Program runs to longitudinal locaiton of edges('zipper')
-in biotac from http server request with image tag in http
-body
+Program determines the longitudinal locaiton of edges('zipper')
+in the biotac of image_name in http server request image tag in 
+http body
 
 '''
 # opencv dot detections
