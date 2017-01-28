@@ -1,8 +1,9 @@
 #!/usr/local/bin/python
 '''
-Program runs to longitudinal locaiton of edges('zipper')
-in biotac from http server request with image tag in http
-body
+Program starts http server and can handle two requsts
+        1. Determine offset error of image provided in request
+        2. Classify locaiton of edges('zipper')in biotac from 
+           trained DNN. 
 
 '''
 
